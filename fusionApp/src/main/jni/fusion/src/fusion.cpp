@@ -136,7 +136,25 @@ int il2cpp_init_hook(char *domain_name)
         dotNetConfig.entryPointType = "BepInEx.Unity.IL2CPP.FusionCoreEntrypoint";
         dotNetConfig.entryPointMethod = "Start";
         dotNetConfig.IsMono = runtime_config.isIl2Cpp2Mono;
-        // set TMPDIR for MonoMod lib drops
+        // Configure private, writable cache paths before managed initialization.
+        const fs::path cacheRoot = fs::path(runtime_config.appDataDirectory);
+        const fs::path managedCache = cacheRoot / ".cache";
+        std::error_code cacheError;
+        if (!cacheRoot.empty() && cacheRoot.is_absolute()) {
+            fs::create_directories(managedCache, cacheError);
+            if (!cacheError && access(managedCache.c_str(), W_OK | X_OK) == 0) {
+                const int homeResult = setenv("HOME", cacheRoot.c_str(), 1);
+                const int cacheResult = setenv("XDG_CACHE_HOME", managedCache.c_str(), 1);
+                if (homeResult == 0 && cacheResult == 0) {
+                    log_format(LogLevel::INFO, TAG, "Managed cache path: {}", managedCache.string());
+                } else {
+                    log(LogLevel::WARN, TAG, "Unable to set managed cache environment");
+                }
+            } else {
+                log(LogLevel::WARN, TAG, "Managed cache directory is not writable");
+            }
+        }
+        // Preserve the existing native temporary directory configuration.
         setenv("TMPDIR", runtime_config.codeCacheDirectory.c_str(), 1);
 
         // create AuxFolderPluginList
