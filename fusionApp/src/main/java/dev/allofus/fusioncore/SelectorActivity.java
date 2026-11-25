@@ -51,6 +51,44 @@ public class SelectorActivity extends AppCompatActivity {
 
     private String pendingLaunchPackage;
     private String pendingMetadataPackage;
+    private static final String AMONG_US_PACKAGE = "com.innersloth.spacemafia";
+
+    private final ActivityResultLauncher<String[]> pickBetterAmongUs =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri == null) return;
+                new Thread(() -> {
+                    File temp = null;
+                    String result;
+                    try {
+                        File folder = new File(Utilities.getExternalFusionCoreDirectory(AMONG_US_PACKAGE, null), "BepInEx/plugins");
+                        if (!folder.isDirectory() && !folder.mkdirs()) throw new java.io.IOException("Cannot create plugins folder");
+                        temp = File.createTempFile("bau-import-", ".tmp", folder);
+                        try (InputStream in = getContentResolver().openInputStream(uri);
+                             java.io.FileOutputStream out = new java.io.FileOutputStream(temp)) {
+                            if (in == null || in.read() != 0x4d || in.read() != 0x5a) throw new java.io.IOException("Not a DLL file");
+                            out.write(new byte[]{0x4d, 0x5a});
+                            byte[] buffer = new byte[8192];
+                            long total = 2;
+                            int n;
+                            while ((n = in.read(buffer)) != -1) {
+                                total += n;
+                                if (total > 64L * 1024 * 1024) throw new java.io.IOException("File too large");
+                                out.write(buffer, 0, n);
+                            }
+                        }
+                        File target = new File(folder, "BetterAmongUs.dll");
+                        if (target.exists()) throw new java.io.IOException("BetterAmongUs.dll already exists; remove it using the mod folder first");
+                        if (!temp.renameTo(target)) throw new java.io.IOException("Cannot install DLL");
+                        result = "BetterAmongUs imported. Compatibility is not verified.";
+                    } catch (Exception e) {
+                        result = "Import failed: " + e.getMessage();
+                    } finally {
+                        if (temp != null) temp.delete();
+                    }
+                    String message = result;
+                    runOnUiThread(() -> new AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK", null).show());
+                }).start();
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +156,16 @@ public class SelectorActivity extends AppCompatActivity {
                     });
 
                     ImageButton folderButton = convertView.findViewById(R.id.selector_action_folder);
+                    folderButton.setOnLongClickListener(v -> {
+                        if (!AMONG_US_PACKAGE.equals(entry.packageName)) return false;
+                        new AlertDialog.Builder(SelectorActivity.this)
+                                .setTitle("Import BetterAmongUs")
+                                .setMessage("Select the official BetterAmongUs.dll release file. Only import a trusted DLL built for your game version. Compatibility with Fatalis Launcher is experimental. Close the game before importing.")
+                                .setPositiveButton("Select DLL", (dialog, which) -> pickBetterAmongUs.launch(new String[]{"*/*"}))
+                                .setNegativeButton("Cancel", null).show();
+                        return true;
+                    });
+                    if (AMONG_US_PACKAGE.equals(entry.packageName)) folderButton.setContentDescription("Open mod folder; hold to import BetterAmongUs");
                     folderButton.setOnClickListener(v -> {
                         File folder = Utilities.getExternalFusionCoreDirectory(entry.packageName, null);
 
