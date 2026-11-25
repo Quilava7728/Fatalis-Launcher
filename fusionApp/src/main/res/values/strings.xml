@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fusion Core</string>
+    <string name="app_name">Fatalis Launcher</string>
     <string name="selector_title">Select a game</string>
     <string name="selector_subtitle">Supported packages are listed below.</string>
     <string name="selector_action_settings">Settings</string>
@@ -12,7 +12,7 @@
     <string name="settings_il2cpp2mono_desc" translatable="false">If you have the managed dlls, you can use this to make the game use mono! BepinEx is currently DISABLED under this. and it could be unstable</string>
     <string name="selector_empty_not_configured">No supported packages configured..</string>
     <string name="selector_empty_not_installed">No supported packages are currently installed.</string>
-    <string name="selector_storage_permission_prompt">Grant "All files access" so Fusion Core can write BepInEx files to Documents.</string>
+    <string name="selector_storage_permission_prompt">Grant "All files access" so Fatalis Launcher can write BepInEx files to Documents.</string>
     <string name="selector_storage_permission_required">All files access is required to continue.</string>
     <string name="selector_storage_permission_open_failed">Could not open storage permission settings.</string>
     <string name="bootstrap_title">Launching selected game</string>
