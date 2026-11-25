@@ -30,7 +30,7 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 36
-        applicationId = "dev.allofus.fusioncore"
+        applicationId = "dev.fatalis.launcher"
         versionCode = 1
         versionName = "0.0.1"
         ndk {
