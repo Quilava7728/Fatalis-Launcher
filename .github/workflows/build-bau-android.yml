@@ -1,0 +1,44 @@
+name: Build BetterAmongUs Android patch
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-bau-android.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: D1GQ/BetterAmongUs
+          ref: main
+          path: upstream
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            6.0.x
+      - name: Apply Android logging patch
+        shell: pwsh
+        run: |
+          $p = 'upstream/src/BAUPlugin.cs'
+          $s = Get-Content $p -Raw
+          $old = 'Instance = this;'
+          if (-not $s.Contains($old)) { throw 'Plugin initialization anchor missing' }
+          $s = $s.Replace($old, 'Instance = this;' + [Environment]::NewLine + '        Logger = new BAULogger(Log);')
+          Set-Content $p $s -Encoding utf8
+          $p = 'upstream/src/Modules/BAULogger.cs'
+          $s = Get-Content $p -Raw
+          if (-not $s.Contains('if (logConsole)')) { throw 'Logger anchor missing' }
+          $s = $s.Replace('if (logConsole)', 'if (logConsole && !BAUPlugin.ModInfo.Starlight)')
+          Set-Content $p $s -Encoding utf8
+      - name: Build patched mod
+        working-directory: upstream/src
+        run: dotnet build BetterAmongUs.csproj --configuration Release -p:CopyToGame=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BetterAmongUs-Android-logger-test
+          path: upstream/src/bin/Release/net6.0/BetterAmongUs.dll
+          if-no-files-found: error
