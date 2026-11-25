@@ -97,6 +97,21 @@ int il2cpp_init_hook(char *domain_name)
         setenv("FUSION_GAME_BINARY", libmain_get_override_il2cpp_path(), 1);
         setenv("FUSION_GAME_DATA_DIR", runtime_config.unityDataDirectory.c_str(), 1);
         setenv("FUSION_APP_DATA_DIR", runtime_config.appDataDirectory.c_str(), 1);
+
+        // Android mods such as BetterAmongUs use this storage convention.
+        const fs::path modDataPath = fs::path(runtime_config.appDataDirectory);
+        std::error_code modDataError;
+        if (!modDataPath.empty() && modDataPath.is_absolute()) {
+            fs::create_directories(modDataPath, modDataError);
+            if (!modDataError && access(modDataPath.c_str(), W_OK | X_OK) == 0 &&
+                setenv("STAR_DATA_PATH", modDataPath.c_str(), 1) == 0) {
+                log_format(LogLevel::INFO, TAG, "Android mod data path: {}", modDataPath.string());
+            } else {
+                log(LogLevel::WARN, TAG, "Unable to configure Android mod data path");
+            }
+        } else {
+            log(LogLevel::WARN, TAG, "Android mod data path is missing or relative");
+        }
         setenv("FUSION_UNITY_VERSION", runtime_config.unityVersion.c_str(), 1);
 
         const char *ssl_cert_path = "/apex/com.android.conscrypt/cacerts";
